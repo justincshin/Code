@@ -1,0 +1,144 @@
+--------------------------------------------------------------------------CODE FOR INSERT PROC------------------------------------------------------------------ 
+
+ALTER PROC [dbo].[ListingAvailabilityExceptions_Insert]
+				@Id int OUTPUT
+				,@ListingId int
+				,@DateStart datetime
+				,@DateEnd datetime
+
+AS
+
+	/*-----------------------------------TEST CODE-----------------------------------
+
+		DECLARE @Id int = 0
+				,@ListingId int = 10
+				,@DateStart datetime = '1/05/2022'
+				,@DateEnd datetime = '1/10/2022'
+
+		EXECUTE [dbo].[ListingAvailabilityExceptions_Insert]
+				@Id OUTPUT
+				,@ListingId
+				,@DateStart
+				,@DateEnd
+
+		SELECT *
+		FROM [dbo].[ListingAvailabilityExceptions]
+
+	*/---------------------------------END TEST CODE---------------------------------
+
+
+
+
+BEGIN
+		INSERT INTO [dbo].[ListingAvailabilityExceptions]
+				([ListingId]
+				,[DateStart]
+				,[DateEnd])
+		VALUES
+				(@ListingId 
+				,@DateStart 
+				,@DateEnd)
+
+		SET @Id=SCOPE_IDENTITY()
+
+END
+
+-----------------------------------------------------------------------END CODE FOR INSERT PROC------------------------------------------------------------------ 
+
+
+--------------------------------------------------------------------------CODE FOR SELECT PROC------------------------------------------------------------------
+ALTER PROC [dbo].[ListingAvailabilityExceptions_SelectByListingId]
+				@ListingId int 
+AS
+
+
+	/*-----------------------------------TEST CODE-----------------------------------
+		DECLARE @ListingId int = 10
+
+		EXECUTE [dbo].[ListingAvailabilityExceptions_SelectByListingId] @ListingId
+
+
+	*/---------------------------------END TEST CODE---------------------------------
+
+
+
+BEGIN
+	
+
+	SELECT [Id]
+		  ,[ListingId]
+		  ,[DateStart]
+		  ,[DateEnd]
+	FROM [dbo].[ListingAvailabilityExceptions]
+	WHERE @ListingId = ListingId
+
+END
+-----------------------------------------------------------------------END CODE FOR SELECT PROC------------------------------------------------------------------
+
+--------------------------------------------------------------------------CODE FOR SELECT PROC W/JOINS--------------------------------------------------------------
+ALTER PROC [dbo].[Listings_Select_ByCreatedBy]
+				@CreatedBy int
+				,@PageIndex int
+				,@PageSize int
+
+	AS
+
+	/*
+
+		Declare @CreatedBy int = 3
+				,@PageIndex int = 0
+				,@PageSize int = 50
+
+		Execute dbo.Listings_Select_ByCreatedBy @CreatedBy
+												,@PageIndex
+												,@PageSize
+
+	*/
+
+	BEGIN
+
+		Declare @Offset int = @PageIndex * @PageSize
+		
+		SELECT l.[Id]
+			  ,l.[InternalName]
+			  ,l.[Title]
+			  ,l.[ShortDescription]
+			  ,l.[Description]
+			  ,l.[BedRooms]
+			  ,l.[Baths]
+			  ,h.[Id] AS [HousingTypeId]
+			  ,h.[Name] AS [HousingName]
+			  ,a.[Id] AS [AccessTypeId]
+			  ,a.[Name] AS [AccessName]
+			  ,a.[Description] AS [AccessDescription]
+			  ,l.[GuestCapacity]
+			  ,l.[CostPerNight]
+			  ,l.[CostPerWeek]
+			  ,l.[CheckInTime]
+			  ,l.[CheckOutTime]
+			  ,l.[DaysAvailable]
+			  ,l.[LocationId]
+			  ,l.[HasVerifiedOwnerShip]
+			  ,l.[IsActive]
+			  ,l.[CreatedBy]
+			  ,l.[DateCreated]
+			  ,l.[DateModified]
+			   ,HousingImages = (SELECT Url
+									FROM dbo.Files AS f INNER JOIN dbo.ListingImages AS li
+									ON li.FileId = f.Id
+									WHERE li.ListingId = l.[Id]
+									FOR JSON AUTO)
+			  ,TotalCount = COUNT(1) OVER()
+		FROM [dbo].[Listings] AS l INNER JOIN dbo.AccessTypes AS a
+		ON l.AccessTypeId = a.Id INNER JOIN dbo.HousingTypes AS h
+		ON l.HousingTypeId = h.Id
+
+		WHERE [CreatedBy] = @CreatedBy
+
+		ORDER BY l.Id
+
+		OFFSET @Offset ROWS
+		FETCH NEXT @PageSize ROWS ONLY
+
+	END
+  -----------------------------------------------------------------------END CODE FOR SELECT PROC W/JOINS-----------------------------------------------------------
